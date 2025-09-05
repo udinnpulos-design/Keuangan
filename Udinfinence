@@ -1,0 +1,164 @@
+# <!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keuanganku - Catatan Keuangan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f6f9; }
+    h1 { color: #2c3e50; }
+    form { margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input, select, button { padding: 10px; margin: 5px 0; width: 100%; border: 1px solid #ccc; border-radius: 5px; }
+    button { background: #3498db; color: white; border: none; cursor: pointer; }
+    button:hover { background: #2980b9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #3498db; color: white; }
+    #saldo { font-size: 20px; font-weight: bold; margin-top: 20px; color: #27ae60; }
+    #export-btn { margin-top: 15px; background: #2ecc71; }
+    #export-btn:hover { background: #27ae60; }
+  </style>
+</head>
+<body>
+  <h1>📒 Keuanganku</h1>
+  <form id="form-transaksi">
+    <select id="jenis" required>
+      <option value="pemasukan">Pemasukan</option>
+      <option value="pengeluaran">Pengeluaran</option>
+    </select>
+    <input type="text" id="deskripsi" placeholder="Deskripsi" required>
+    <input type="number" id="jumlah" placeholder="Jumlah (Rp)" required>
+    <button type="submit">Tambah</button>
+  </form>
+
+  <h2>Daftar Transaksi</h2>
+  <table id="tabel-transaksi">
+    <thead>
+      <tr><th>Jenis</th><th>Deskripsi</th><th>Jumlah (Rp)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <p id="saldo">Saldo: Rp 0</p>
+  <button id="export-btn">📥 Export ke CSV</button>
+
+  <script>
+    const form = document.getElementById('form-transaksi');
+    const tabelBody = document.querySelector('#tabel-transaksi tbody');
+    const saldoEl = document.getElementById('saldo');
+    const exportBtn = document.getElementById('export-btn');
+
+    let saldo = 0;
+    let transaksi = [];
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const jenis = document.getElementById('jenis').value;
+      const deskripsi = document.getElementById('deskripsi').value;
+      const jumlah = parseFloat(document.getElementById('jumlah').value);
+
+      if (isNaN(jumlah) || jumlah <= 0) return alert("Jumlah harus lebih dari 0");
+
+      transaksi.push({ jenis, deskripsi, jumlah });
+
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${jenis}</td><td>${deskripsi}</td><td>${jenis==="pengeluaran"?"-":"+"} Rp ${jumlah.toLocaleString("id-ID")}</td>`;
+      tabelBody.appendChild(row);
+
+      saldo += (jenis==="pemasukan"? jumlah : -jumlah);
+      saldoEl.textContent = `Saldo: Rp ${saldo.toLocaleString("id-ID")}`;
+
+      form.reset();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (!transaksi.length) return alert("Belum ada transaksi untuk diexport.");
+
+      let csv = "Jenis,Deskripsi,Jumlah\n";
+      transaksi.forEach(trx => csv += `${trx.jenis},${trx.deskripsi},${trx.jumlah}\n`);
+
+      const link = document.createElement("a");
+      link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+      link.download = "catatan_keuangan.csv";
+      link.click();
+    });
+  </script>
+</body>
+</html> workflow will build and push a node.js application to an Azure Web App when a commit is pushed to your default branch.
+#
+# This workflow assumes you have already created the target Azure App Service web app.
+# For instructions see https://docs.microsoft.com/en-us/azure/app-service/quickstart-nodejs?tabs=linux&pivots=development-environment-cli
+#
+# To configure this workflow:
+#
+# 1. Download the Publish Profile for your Azure Web App. You can download this file from the Overview page of your Web App in the Azure Portal.
+#    For more information: https://docs.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=applevel#generate-deployment-credentials
+#
+# 2. Create a secret in your repository named AZURE_WEBAPP_PUBLISH_PROFILE, paste the publish profile contents as the value of the secret.
+#    For instructions on obtaining the publish profile see: https://docs.microsoft.com/azure/app-service/deploy-github-actions#configure-the-github-secret
+#
+# 3. Change the value for the AZURE_WEBAPP_NAME. Optionally, change the AZURE_WEBAPP_PACKAGE_PATH and NODE_VERSION environment variables below.
+#
+# For more information on GitHub Actions for Azure: https://github.com/Azure/Actions
+# For more information on the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: your-app-name    # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
+  NODE_VERSION: '20.x'                # set this to the node version to use
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: npm install, build, and test
+      run: |
+        npm install
+        npm run build --if-present
+        npm run test --if-present
+
+    - name: Upload artifact for deployment job
+      uses: actions/upload-artifact@v4
+      with:
+        name: node-app
+        path: .
+
+  deploy:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Development'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v4
+      with:
+        name: node-app
+
+    - name: 'Deploy to Azure WebApp'
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
